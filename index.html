@@ -93,6 +93,25 @@
         font-weight: bold;
         margin: 1rem 0;
       }
+      .button-box {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 1rem;
+      }
+
+      .button-box .button:last-child {
+        margin-left: auto;
+      }
+      .button:hover:enabled {
+        background-color: #45a049;
+      }
+
+      .button:disabled {
+        background-color: #265228; /* darker green */
+        cursor: not-allowed;
+        opacity: 0.8;
+      }
     </style>
   </head>
   <body>
@@ -332,8 +351,22 @@
             renderQuestion();
           };
 
-          questionBox.appendChild(submitBtn);
-          questionBox.appendChild(nextBtn);
+          const newQuiz = document.createElement("button");
+          newQuiz.className = "button";
+          newQuiz.textContent = "New Quiz";
+          newQuiz.onclick = () => {
+            localStorage.clear();
+            state.currentIndex = 0;
+            state.answers = [];
+            location.reload();
+          };
+
+          const buttonBox = document.createElement("div");
+          buttonBox.className = "button-box";
+          buttonBox.appendChild(submitBtn);
+          buttonBox.appendChild(nextBtn);
+          buttonBox.appendChild(newQuiz);
+          questionBox.appendChild(buttonBox);
           container.appendChild(questionBox);
         };
 
@@ -345,11 +378,12 @@
           const passed = score >= 70;
 
           container.innerHTML = `<h2>Quiz Completed</h2>
-            <p>Score: ${score}% — ${
+  <p>Score: ${score}% — ${
             passed ? "✅ Passed" : "❌ Failed"
           } (Minimum 70% required)</p>
-            <p>${correct} out of ${total} correct</p>
-            <button onclick="resetQuiz()" class="button">Restart Quiz</button>
+  <p>${correct} out of ${total} correct</p>
+  <button onclick="resetQuiz()" class="button">Restart Quiz</button>
+            <button onclick="startNewQuiz()" class="button">Start New Quiz</button>
             <div class="summary">
               <h3>Review Incorrect Answers</h3>
               ${state.answers
@@ -377,9 +411,59 @@
           state.answers = [];
           renderQuestion();
         };
+        window.startNewQuiz = () => {
+          localStorage.clear();
+          state.currentIndex = 0;
+          state.answers = [];
+          location.reload();
+        };
 
         renderQuestion();
       }
+
+      // Check on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        const name = localStorage.getItem("userName");
+        const email = localStorage.getItem("userEmail");
+        const paper = localStorage.getItem("selectedPaper");
+
+        if (name && email && paper) {
+          // Hide the form and show quiz container
+          document.getElementById("form-container").classList.add("hidden");
+          document.getElementById("quiz-container").classList.remove("hidden");
+
+          // Display user info
+          document.getElementById("user-info").innerHTML = `
+            <h2>Welcome, ${name}</h2>
+            <p>Email: ${email}</p>
+            <p>Paper: ${paper}</p>
+            <hr>
+          `;
+
+          // Dynamically load the selected paper
+          const script = document.createElement("script");
+          script.src = `./paper/paper-${paper}.js`;
+          script.setAttribute("data-paper", paper);
+
+          script.onload = function () {
+            if (
+              typeof questions === "undefined" ||
+              !Array.isArray(questions) ||
+              questions.length === 0
+            ) {
+              showError("No questions found. Please try another paper.");
+              return;
+            }
+            initializeQuiz();
+          };
+
+          script.onerror = function () {
+            showError("Failed to load paper file.");
+          };
+
+          document.body.appendChild(script);
+        }
+      });
     </script>
   </body>
 </html>
